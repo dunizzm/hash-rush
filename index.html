@@ -50,8 +50,20 @@
 @media(max-width:610px){#farm .room{min-height:350px}#farm .room-ui p{max-width:17ch}}
 
 </style>
+<style>
+#entryFrame{position:fixed;inset:0;width:100%;height:100%;border:0;background:#110e19;z-index:100}
+#gameContent[hidden],#entryFrame[hidden]{display:none!important}
+</style>
+<script>
+if (/^https?:$/.test(location.protocol) && location.pathname.endsWith('/index.html')) {
+  history.replaceState(history.state,'',location.pathname.slice(0,-'index.html'.length)+location.search+location.hash);
+}
+</script>
 </head>
 <body>
+<noscript><p>Включи JavaScript, чтобы пройти проверку и открыть игру.</p></noscript>
+<iframe id="entryFrame" title="Проверка входа HASH RUSH" hidden></iframe>
+<div id="gameContent" hidden>
 <div class="layout">
 <aside class="sidebar">
   <a class="brand" href="#farm"><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA0OCA0OCI+PHJlY3Qgd2lkdGg9IjQ4IiBoZWlnaHQ9IjQ4IiByeD0iMTEiIGZpbGw9IiNkNGZhNzAiLz48cGF0aCBkPSJNMjAgMTFoNmwtMiA3aDVsMi03aDVsLTIgN2g1bC0xLjUgNUgzMmwtMS41IDVIMzZsLTEuNSA1aC01bC0xLjUgNmgtNmwxLjUtNmgtNWwtMS41IDZoLTVsMS41LTZIOGwxLjUtNUgxNWwxLjUtNUgxMWwxLjUtNUgxOHptMi41IDEyLTEuNSA1aDVsMS41LTV6IiBmaWxsPSIjMTYxZTEwIi8+PC9zdmc+Cg==" alt=""><span>HASH<span class="lime">RUSH</span><small>СИМУЛЯТОР МАЙНЕРА</small></span></a>
@@ -185,6 +197,7 @@
   </ol>
 </dialog>
 <div id="toast" role="status"></div>
+</div>
 <script>
 'use strict';
 
@@ -1936,7 +1949,34 @@ document.addEventListener('keydown', (event) => {
 });
 
 
-boot();
+function setupEntry() {
+  const frame = document.getElementById('entryFrame');
+  const game = document.getElementById('gameContent');
+  const sessionKey = 'hash-rush-entry-v1';
+  function start() {
+    frame.remove();
+    game.hidden = false;
+    boot();
+    document.querySelector('main h1')?.focus({preventScroll:true});
+  }
+  try {
+    if (sessionStorage.getItem(sessionKey) === 'passed') {
+      start();
+      return;
+    }
+  } catch {}
+  function receive(event) {
+    if (event.source !== frame.contentWindow || event.origin !== location.origin ||
+        event.data?.type !== 'hash-rush:entry-verified') return;
+    window.removeEventListener('message',receive);
+    try { sessionStorage.setItem(sessionKey,'passed'); } catch {}
+    start();
+  }
+  window.addEventListener('message',receive);
+  frame.src = 'captcha.html';
+  frame.hidden = false;
+}
+setupEntry();
 
 </script>
 </body>

@@ -1,0 +1,219 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#110e19">
+<meta name="robots" content="noindex">
+<title>Проверка входа · HASH RUSH</title>
+<script>
+if (window.parent === window) {
+  location.replace(new URL(location.protocol === 'file:' ? 'index.html' : './', location.href));
+}
+</script>
+<style>
+:root{color-scheme:dark;--bg:#110e19;--panel:#1e172a;--border:#443552;--lime:#d4fa70;--text:#f8f3ff;--muted:#b9abc9;--violet:#c6a7ff;--mono:ui-monospace,monospace;font-family:Inter,system-ui,sans-serif;color:var(--text)}
+*{box-sizing:border-box}
+body{margin:0;min-height:100vh;min-height:100dvh;background:radial-gradient(ellipse at 50% 28%,#2a1c3d,transparent 64%),var(--bg);display:grid;place-items:center;padding:18px}
+body::before{content:"";position:fixed;inset:0;pointer-events:none;background:linear-gradient(#ac83e108 1px,transparent 1px),linear-gradient(90deg,#ac83e108 1px,transparent 1px);background-size:31px 31px;mask-image:radial-gradient(ellipse at 50% 42%,black,transparent 78%)}
+[hidden]{display:none!important}
+button,input{font:inherit}button{cursor:pointer;color:inherit}button:disabled{cursor:default}a,button,input{-webkit-tap-highlight-color:transparent}
+button:focus-visible,input:focus-visible+span,label:focus-within .checkbox{outline:2px solid var(--lime);outline-offset:3px}
+.stage{position:relative;width:min(100%,444px);margin:auto}
+.intro{text-align:center;animation:rise .28s ease-out}
+.brand{display:inline-flex;align-items:center;gap:10px;font-size:1.22rem;font-weight:900;letter-spacing:-.045em}
+.brand b{display:grid;place-items:center;width:37px;height:37px;background:var(--lime);color:#20260f;border-radius:10px;font:900 1.55rem/1 var(--mono)}
+.brand span span{color:var(--lime)}
+h1,h2,p{margin:0}
+.intro h1{margin-top:24px;font-size:clamp(2.05rem,8vw,3rem);line-height:1.05;letter-spacing:-.07em}
+.intro p{color:var(--muted);font-size:.93rem;line-height:1.45;margin:11px 0 22px}
+.verify-card{position:relative;display:flex;align-items:center;gap:14px;padding:16px 14px;background:#21182d;border:1px solid #695484;border-radius:12px;box-shadow:0 15px 70px #0b07159e, inset 0 1px 0 #ffffff0a;cursor:pointer;text-align:left}
+.verify-card:hover{border-color:var(--violet);background:#281d37}
+.verify-card input{position:absolute;opacity:0;width:31px;height:31px;margin:0}
+.checkbox{display:grid;place-items:center;width:31px;height:31px;flex:none;border:2px solid #a58bbf;border-radius:7px;color:transparent}
+.verify-card:hover .checkbox{border-color:var(--lime)}
+.verify-card input:checked+.checkbox{background:var(--lime);border-color:var(--lime);color:#20260f}
+.verify-card strong{font-size:1.05rem}
+.verify-mark{display:grid;place-items:center;gap:3px;margin-left:auto;font:650 .59rem var(--mono);color:var(--violet)}
+.verify-mark svg{width:27px;height:27px}
+.challenge{background:var(--panel);border:1px solid #644e7e;border-radius:15px;box-shadow:0 16px 66px #07050abd;overflow:hidden;animation:rise .24s ease-out}
+.prompt{position:relative;padding:16px 17px 15px;background:linear-gradient(116deg,#3a2855,#2b1e42);border-bottom:1px solid #644d84}
+.prompt-top{display:flex;justify-content:space-between;gap:10px;align-items:center}
+.progress{display:flex;gap:5px;align-items:center;font:650 .72rem var(--mono);color:#e0d1f4}
+.progress i{width:18px;height:4px;background:#79658e;border-radius:8px}
+.progress i.active{background:var(--lime);box-shadow:0 0 9px #d4fa706e}
+.prompt h2{margin:11px 0 4px;font-size:clamp(1.35rem,6vw,1.88rem);letter-spacing:-.035em;line-height:1.14}
+.prompt h2 strong{display:block;color:var(--lime);margin-top:3px}
+.prompt p{color:#d8cbe8;font-size:.8rem}
+.icon{display:grid;place-items:center;flex:none;width:34px;height:34px;background:#2a203a;border:1px solid #655384;border-radius:8px;color:#ead9ff}
+.icon:hover{background:#483661}
+.icon svg{width:17px;height:17px}
+.grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;padding:10px 10px 0}
+.tile{position:relative;display:grid;place-items:center;aspect-ratio:1.19;border:2px solid transparent;border-radius:8px;overflow:hidden;padding:0;background:var(--tile);transition:transform .16s,border-color .16s,box-shadow .16s}
+.tile svg.picture{width:84%;height:85%;filter:drop-shadow(0 4px 3px #22133235);transition:transform .18s;transform:rotate(var(--angle)) scale(var(--scale))}
+.tile:hover{border-color:#eee4ff}
+.tile[aria-pressed=true]{border-color:var(--lime);box-shadow:0 0 12px #d4fa7060;z-index:1}
+.tile[aria-pressed=true] svg.picture{transform:rotate(var(--angle)) scale(.78)}
+.check{display:grid;place-items:center;position:absolute;top:5px;right:5px;width:22px;height:22px;border-radius:50%;background:var(--lime);color:#262c10;opacity:0;transform:scale(.65);transition:opacity .15s, transform .15s}
+.check svg{width:14px;height:14px}
+.tile[aria-pressed=true] .check{opacity:1;transform:scale(1)}
+.actions{display:flex;align-items:center;justify-content:space-between;gap:9px;padding:7px 10px 11px}
+.message{font-size:.79rem;color:#ff98ac;min-height:1.75em;padding:4px 12px 0;line-height:1.35}
+.primary{margin-left:auto;min-height:41px;font-weight:850;border:0;border-radius:8px;padding:9px 15px;color:#1d2410;background:var(--lime)}
+.primary:hover:not(:disabled){background:#e7ffa5}
+.primary:disabled{opacity:.42}
+.invalid{animation:shake .24s ease-out}
+.success{text-align:center;padding:28px 0;animation:rise .23s ease-out}
+.success .brand b{margin:auto;width:60px;height:60px;box-shadow:0 0 28px #d4fa7066}
+.success h2{margin-top:12px;font-size:1.65rem}
+.success p{margin-top:5px;color:var(--muted);font-size:.9rem}
+@keyframes rise{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+@keyframes shake{25%{transform:translateX(-4px)}75%{transform:translateX(4px)}}
+@media(max-width:360px){body{padding:10px}.prompt{padding:12px}.grid{gap:4px;padding:7px 7px 0}.verify-card{padding:13px 10px;gap:8px}}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<main class="stage">
+  <section id="intro" class="intro">
+    <div class="brand"><b aria-hidden="true">#</b><span>HASH<span>RUSH</span></span></div>
+    <h1>Проверка входа</h1>
+    <p>Пройди два раунда, чтобы открыть гараж.</p>
+    <label class="verify-card">
+      <input id="human" type="checkbox"><span class="checkbox" aria-hidden="true">✓</span>
+      <strong>Я человек</strong>
+      <span class="verify-mark" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.55" stroke-linejoin="round"><path d="M12 2.5 20 6v6c0 4.3-3 7.4-8 9.5C7 19.4 4 16.3 4 12V6z"/><path d="m8.5 12 2.3 2.3 4.8-5"/></svg>
+        HASH RUSH
+      </span>
+    </label>
+  </section>
+  <section id="challenge" class="challenge" aria-labelledby="instruction" hidden>
+    <header class="prompt">
+      <div class="prompt-top">
+        <div class="progress" id="progress"><i aria-hidden="true"></i><i aria-hidden="true"></i><span></span></div>
+        <button id="back" class="icon" type="button" aria-label="Закрыть проверку" title="Закрыть проверку">
+          <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="m6 6 12 12M18 6 6 18"/></svg>
+        </button>
+      </div>
+      <h2 id="instruction" tabindex="-1">Выбери все картинки с <strong id="target"></strong></h2>
+      <p>Нажми на подходящие клетки и подтверди выбор.</p>
+    </header>
+    <div class="grid" id="grid" aria-label="Сетка из девяти картинок"></div>
+    <p id="message" class="message" role="status"></p>
+    <div class="actions">
+      <button id="refresh" class="icon" type="button" aria-label="Новое задание" title="Новое задание">
+        <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 11a8 8 0 1 0-2.3 6M20 5v6h-6"/></svg>
+      </button>
+      <button id="submit" class="primary" type="button">Подтвердить</button>
+    </div>
+  </section>
+  <section id="success" class="success" role="status" hidden>
+    <div class="brand" aria-hidden="true"><b>✓</b></div>
+    <h2>Проверка пройдена</h2><p>Открываем гараж…</p>
+  </section>
+</main>
+<script>
+'use strict';
+
+const items = {
+  banana:{label:'Банан', prompt:'бананами', svg:'<path d="M74 17c-4 24-22 39-42 44-7 2-16 2-21-1 6 17 31 22 49 12 18-10 26-29 24-50l-6-6z" fill="#ffc947" stroke="#703d34" stroke-width="3"/><path d="M14 63c24 5 52-11 62-38-2 22-17 39-39 45-10 3-17 0-23-7z" fill="#ffdd68"/><path d="m73 21 1-9 6-3 3 4-1 10zM12 60l-4 4 6 5 4-5z" fill="#81563d"/><path d="M25 69c17 6 37-9 46-20" fill="none" stroke="#d68639" stroke-width="2.5" stroke-linecap="round"/>'},
+  apple:{label:'Яблоко', prompt:'яблоками', svg:'<path d="M49 30c-12-11-34-8-38 10-5 20 10 40 23 42 6 1 9-3 15-3s10 4 16 3c13-3 28-23 22-43-5-17-25-21-38-9z" fill="#f36371" stroke="#823345" stroke-width="3"/><path d="M49 34c1-11-2-20-10-25" fill="none" stroke="#653e38" stroke-width="5" stroke-linecap="round"/><path d="M49 25c3-10 12-16 25-15-1 11-10 17-25 15z" fill="#6aaa55"/><path d="M23 46c1-7 6-11 13-11" fill="none" stroke="#ffc8ab" stroke-width="5" stroke-linecap="round"/>'},
+  pear:{label:'Груша', prompt:'грушами', svg:'<path d="M48 20c13 0 14 16 19 24 6 9 15 13 15 25 0 14-15 22-34 22-20 0-34-8-34-22 0-11 9-17 15-26 5-8 5-23 19-23z" fill="#a2ce5b" stroke="#526537" stroke-width="3"/><path d="M46 25c1-8 5-15 13-20" fill="none" stroke="#775349" stroke-width="5" stroke-linecap="round"/><path d="M52 16c7-8 14-7 21-2-7 6-14 7-21 2z" fill="#5b9c57"/><path d="M29 67c0-8 7-12 11-20" fill="none" stroke="#dbed89" stroke-width="5" stroke-linecap="round"/><circle cx="63" cy="72" r="2" fill="#729543"/>'},
+  cherry:{label:'Вишня', prompt:'вишней', svg:'<path d="M31 56c0-23 15-34 28-47 0 20 11 30 15 44" fill="none" stroke="#477b57" stroke-width="4" stroke-linecap="round"/><path d="M57 16c-11-9-23-14-35-7 8 11 22 15 35 7z" fill="#76b858"/><circle cx="28" cy="67" r="17" fill="#eb4a6b" stroke="#8d3857" stroke-width="3"/><circle cx="72" cy="65" r="19" fill="#ff6476" stroke="#8d3857" stroke-width="3"/><path d="M18 65c0-5 4-8 9-9m35 7c0-5 5-9 10-10" fill="none" stroke="#ffbcb7" stroke-width="4" stroke-linecap="round"/>'},
+  lemon:{label:'Лимон', prompt:'лимонами', svg:'<path d="M23 31c12-12 38-15 50-3 6 6 8 10 11 12 8 4 7 12 0 16-3 2-5 8-11 14-13 12-38 10-50-2-6-6-6-10-10-12-8-6-7-12 0-16 4-3 6-6 10-9z" fill="#ffe156" stroke="#92712e" stroke-width="3"/><path d="M30 41c9-7 24-9 32-5" fill="none" stroke="#fff1a3" stroke-width="5" stroke-linecap="round"/><path d="M68 24c4-10 12-16 24-14-4 11-12 16-24 14z" fill="#79a95c"/><g fill="#dfb839"><circle cx="69" cy="60" r="2"/><circle cx="75" cy="56" r="1.5"/><circle cx="62" cy="65" r="1.5"/></g>'},
+  grape:{label:'Виноград', prompt:'виноградом', svg:'<path d="M48 30c1-10 9-17 18-20m-17 13c-6-10-17-13-26-8 5 10 16 14 26 8z" fill="none" stroke="#58905c" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/><g fill="#ad78da" stroke="#644480" stroke-width="2.5"><circle cx="32" cy="43" r="13"/><circle cx="52" cy="41" r="14"/><circle cx="71" cy="46" r="13"/><circle cx="39" cy="61" r="13"/><circle cx="61" cy="61" r="14"/><circle cx="50" cy="78" r="12"/></g><g fill="#f2d2ff"><circle cx="28" cy="39" r="3"/><circle cx="48" cy="37" r="3"/><circle cx="67" cy="42" r="3"/><circle cx="34" cy="57" r="3"/><circle cx="57" cy="56" r="3"/><circle cx="46" cy="74" r="2.5"/></g>'},
+  kiwi:{label:'Киви', prompt:'киви', svg:'<ellipse cx="49" cy="51" rx="36" ry="30" fill="#956145" stroke="#674744" stroke-width="3"/><ellipse cx="49" cy="48" rx="30" ry="25" fill="#91c26c"/><ellipse cx="49" cy="48" rx="12" ry="8" fill="#f0e29e"/><path d="M49 27v7m0 28v6M28 47h8m25 0h9M34 34l5 5m19 18 5 5m0-27-5 5M39 57l-5 5" stroke="#374734" stroke-width="3" stroke-linecap="round"/>'},
+  strawberry:{label:'Клубника', prompt:'клубникой', svg:'<path d="M18 39c-1-14 13-22 30-15 20-7 36 0 35 15-1 18-25 46-34 46-10 0-30-28-31-46z" fill="#f4586b" stroke="#82384d" stroke-width="3"/><path d="M48 30c-8-12-19-13-25-12 3 10 10 15 17 15l-1 8 11-7 11 7-2-8c9-2 15-6 17-15-12 0-21 5-28 12z" fill="#6cac67"/><g fill="#ffd6a0"><ellipse cx="32" cy="47" rx="2" ry="3"/><ellipse cx="48" cy="45" rx="2" ry="3"/><ellipse cx="66" cy="46" rx="2" ry="3"/><ellipse cx="40" cy="60" rx="2" ry="3"/><ellipse cx="56" cy="60" rx="2" ry="3"/><ellipse cx="49" cy="71" rx="2" ry="3"/></g>'}
+};
+const colors = ['#e5d9ef','#f6e1c8','#d6e9e2','#e1def3','#eed8dc','#e6edc9','#d1e5ec','#f0e8ce','#eddbed'];
+const get = (id) => document.getElementById(id);
+const names = Object.keys(items);
+const checkIcon = '<span class="check" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 5 5 9-10"/></svg></span>';
+let step = 0;
+let targets = [];
+let tiles = [];
+const selected = new Set();
+
+function shuffle(values) {
+  const result = [...values];
+  for (let i = result.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [result[i], result[j]] = [result[j], result[i]];
+  }
+  return result;
+}
+function makeRound(targetName) {
+  const count = 3 + Number(Math.random() >= .55);
+  const filler = shuffle(names.filter((name) => name !== targetName)).slice(0,9-count);
+  return shuffle([...Array(count).fill(targetName), ...filler]);
+}
+function exactMatch(board, choices, targetName) {
+  return board.every((name,i) => choices.has(i) === (name === targetName));
+}
+function render() {
+  const targetName = targets[step];
+  const backgrounds = shuffle(colors);
+  tiles = makeRound(targetName);
+  selected.clear();
+  get('message').textContent = '';
+  get('target').textContent = items[targetName].prompt;
+  const progress = get('progress');
+  progress.querySelector('span').textContent = 'РАУНД ' + (step+1) + ' ИЗ 2';
+  [...progress.querySelectorAll('i')].forEach((bar,i) => bar.classList.toggle('active',i <= step));
+  get('grid').innerHTML = tiles.map((name,i) => '<button class="tile" type="button" data-tile="'+i+'" aria-pressed="false" aria-label="'+items[name].label+'" style="--tile:'+backgrounds[i]+';--angle:'+(Math.floor(Math.random()*29)-14)+'deg;--scale:'+(0.82 + Math.random() * .16).toFixed(2)+'"><svg class="picture" viewBox="0 0 98 98" aria-hidden="true">'+items[name].svg+'</svg>'+checkIcon+'</button>').join('');
+  get('submit').textContent = step === 0 ? 'Дальше' : 'Открыть гараж';
+  get('submit').disabled = true;
+  get('instruction').focus();
+}
+function begin() {
+  step = 0;
+  targets = ['banana',shuffle(names.filter((name) => name !== 'banana'))[0]];
+  get('intro').hidden = true;
+  get('challenge').hidden = false;
+  render();
+}
+function closeChallenge() {
+  get('challenge').hidden = true;
+  get('intro').hidden = false;
+  get('human').checked = false;
+  get('human').focus();
+}
+get('human').addEventListener('change',begin);
+get('back').addEventListener('click',closeChallenge);
+document.addEventListener('keydown',(event) => {
+  if (event.key === 'Escape' && !get('challenge').hidden) closeChallenge();
+});
+get('refresh').addEventListener('click',render);
+get('grid').addEventListener('click',(event) => {
+  const tile = event.target.closest('[data-tile]');
+  if (!tile) return;
+  const index = Number(tile.dataset.tile);
+  if (selected.has(index)) selected.delete(index);
+  else selected.add(index);
+  tile.setAttribute('aria-pressed',String(selected.has(index)));
+  get('message').textContent = '';
+  get('submit').disabled = selected.size === 0;
+});
+get('submit').addEventListener('click',() => {
+  if (!exactMatch(tiles,selected,targets[step])) {
+    const grid = get('grid');
+    grid.classList.remove('invalid');
+    void grid.offsetWidth;
+    grid.classList.add('invalid');
+    get('message').textContent = 'Выбор не совпал. Проверь, отмечены ли все нужные картинки.';
+    return;
+  }
+  if (step === 0) {
+    step = 1;
+    render();
+    return;
+  }
+  get('challenge').hidden = true;
+  get('success').hidden = false;
+  const delay = matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : 500;
+  setTimeout(() => parent.postMessage({type:'hash-rush:entry-verified'},location.origin === 'null' ? '*' : location.origin),delay);
+});
+</script>
+</body>
+</html>
