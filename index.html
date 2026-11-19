@@ -49,6 +49,18 @@
 #farm .room-controls .primary,#farm .room-controls .secondary{min-height:44px}
 @media(max-width:610px){#farm .room{min-height:350px}#farm .room-ui p{max-width:17ch}}
 
+.office-gpu-actions{display:flex;align-items:center;gap:6px 10px;flex-wrap:wrap}
+.office-gpu-actions .secondary{min-height:28px;padding:3px 7px;font-size:.75rem}
+.office-empty{background:transparent;width:100%;padding:8px}
+.office-inventory{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,270px),1fr));gap:8px}
+.inventory-gpu{display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:8px;padding:9px}
+.inventory-gpu h3{font-size:.86rem;overflow-wrap:anywhere}
+.inventory-gpu p{font-size:.76rem;color:var(--muted)}
+.inventory-gpu .secondary{min-height:33px;padding:5px 8px;font-size:.78rem}
+.fit-options{display:flex;flex-wrap:wrap;gap:8px}
+.fit-error{margin-top:10px;font-size:.85rem;color:var(--danger)}
+.fit-error:empty{display:none}
+
 </style>
 <style>
 #entryFrame{position:fixed;inset:0;width:100%;height:100%;border:0;background:#110e19;z-index:100}
@@ -116,6 +128,8 @@ if (/^https?:$/.test(location.protocol) && location.pathname.endsWith('/index.ht
       </article>
       <div class="subheading"><div><h2>Стойки и видеокарты</h2><p id="officeCapacity"></p></div><a class="secondary link-button" href="#shop"><i data-icon="shop"></i> Магазин GPU</a></div>
       <div id="officeRigs" class="office-rigs"></div>
+      <div class="subheading"><div><h2>Склад видеокарт</h2><p id="inventoryCount"></p></div></div>
+      <div id="officeInventory" class="office-inventory"></div>
       <div class="subheading"><div><h2>ASIC-оборудование</h2><p>Устройства для BTC и LTC.</p></div><a class="secondary link-button" href="#asic"><i data-icon="chip"></i> Магазин ASIC</a></div>
       <div id="officeAsics" class="hardware-grid"></div>
       <article id="officePower" class="panel office-power"></article>
@@ -1182,7 +1196,7 @@ const maxAsics = 4;
 const key = 'hash-rush-save-v2';
 const defaultWallet = () => Object.fromEntries(Object.keys(COINS).map((id) => [id,0]));
 const starter = () => ({
-  cash:80, stands:[{type:'basic', cards:[{id:'rx580',health:100},null]}], asics:[], power:0, cooling:0, temp:42, coin:'ETC',
+  cash:80, stands:[{type:'basic', cards:[{id:'rx580',health:100},null]}], inventory:[], asics:[], power:0, cooling:0, temp:42, coin:'ETC',
   wallet:defaultWallet(), mined:defaultWallet(), sold:defaultWallet(), history:[], clock:0, earned:0, traded:0, bestTrade:0,
   raids:0, best:0, hits:0, raidLoot:0, perfectRaid:0, savedFromHeat:0, repairs:0, claimed:[], sound:false, paused:false, boost:0,
   cooldown:0, vent:0, throttled:false
@@ -1352,6 +1366,33 @@ function firstFree() {
   const rack = state.stands.findIndex((stand) => stand.cards.includes(null));
   return rack === -1 ? null : {rack,slot:state.stands[rack].cards.indexOf(null)};
 }
+function emptySlots() {
+  return state.stands.flatMap((stand,rack) => stand.cards.flatMap((card,slot) => card === null ? [{rack,slot}] : []));
+}
+function removeGpu(rack,slot) {
+  const card = state.stands[rack]?.cards[slot];
+  if (!card) return;
+  transact(0,() => {
+    state.inventory.push(card);
+    state.stands[rack].cards[slot] = null;
+  },gpuById[card.id].name+' на складе');
+  document.querySelector('[data-fit-slot="'+rack+':'+slot+'"]')?.focus();
+}
+function fitGpu(index,rack,slot) {
+  const card = state.inventory[index];
+  if (!card || state.stands[rack]?.cards[slot] !== null) return;
+  const gpu = gpuById[card.id];
+  if (card.health > 0 && gpuLoad()+gpu.watts > powerLimit()) {
+    $('fitError').textContent = 'Не хватает мощности блока питания для '+gpu.name+'.';
+    return;
+  }
+  info.close();
+  transact(0,() => {
+    state.stands[rack].cards[slot] = card;
+    state.inventory.splice(index,1);
+  },gpu.name+' · стойка '+(rack+1)+', слот '+(slot+1));
+  document.querySelector('[data-remove-gpu="'+rack+':'+slot+'"]')?.focus();
+}
 function buyBlock(gpu) {
   if (!firstFree()) return 'Нет свободных слотов. Купи стенд в улучшениях.';
   if (gpuLoad()+gpu.watts > powerLimit()) return 'Не хватает питания. Установи более мощный блок.';
@@ -1409,9 +1450,15 @@ function renderOffice() {
     const occupied = stand.cards.filter(Boolean).length;
     return '<article class="panel office-rig"><div class="office-rig-head"><div class="rack-symbol">'+icon('chip')+'</div><div><h3>'+spec.name+'</h3><p>Стойка '+(rack+1)+' · '+occupied+' / '+spec.slots+' GPU</p></div></div><div class="office-slots">'+stand.cards.map((card,slot) => {
       const gpu = card && gpuById[card.id];
-      return gpu ? '<div class="office-gpu"><button class="slot-photo" data-info="'+gpu.id+'" aria-label="Открыть параметры '+gpu.name+'"><img src="'+gpu.img+'" alt=""></button><div><strong>'+gpu.name+'</strong><small>'+gpu.watts+' Вт · '+gpu.hash+' MH/s</small><span class="health-meter"><span style="width:'+card.health+'%"></span></span><button class="health-button" data-repair="'+rack+':'+slot+'">Состояние <b data-health="'+rack+':'+slot+'">'+num(card.health)+'%</b></button></div></div>'
-        : '<a class="office-empty" href="#shop" data-slot="'+rack+':'+slot+'">'+icon('plus')+' Установить GPU</a>';
+      const code = rack+':'+slot;
+      return gpu ? '<div class="office-gpu"><button class="slot-photo" data-info="'+gpu.id+'" aria-label="Открыть параметры '+gpu.name+'"><img src="'+gpu.img+'" alt=""></button><div><strong>'+gpu.name+'</strong><small>'+gpu.watts+' Вт · '+gpu.hash+' MH/s</small><span class="health-meter"><span style="width:'+card.health+'%"></span></span><div class="office-gpu-actions"><button class="health-button" data-repair="'+code+'">Состояние <b data-health="'+code+'">'+num(card.health)+'%</b></button><button class="secondary" data-remove-gpu="'+code+'" aria-label="Снять '+gpu.name+' со стойки '+(rack+1)+', слот '+(slot+1)+'">Снять</button></div></div></div>'
+        : '<button class="office-empty" data-fit-slot="'+code+'" aria-label="Установить GPU в стойку '+(rack+1)+', слот '+(slot+1)+'">'+icon('plus')+' Установить GPU</button>';
     }).join('')+'</div></article>';
+  }).join('');
+  $('inventoryCount').textContent = state.inventory.length ? 'Карт на складе: '+int(state.inventory.length) : 'Карты появятся здесь после снятия со стойки.';
+  $('officeInventory').innerHTML = state.inventory.map((card,index) => {
+    const gpu = gpuById[card.id];
+    return '<article class="panel inventory-gpu"><button class="slot-photo" data-info="'+gpu.id+'" aria-label="Открыть параметры '+gpu.name+'"><img src="'+gpu.img+'" alt=""></button><div><h3>'+gpu.name+'</h3><p>'+num(card.health)+'% ресурса · '+gpu.watts+' Вт</p></div><button class="secondary" data-fit-inventory="'+index+'" aria-label="Установить '+gpu.name+' со склада">Установить</button></article>';
   }).join('');
   $('officeAsics').innerHTML = state.asics.length ? state.asics.map((id) => {
     const a = asicById[id];
@@ -1512,6 +1559,24 @@ function repairInfo(slotCode) {
   const block = card.health >= 99.95 ? 'Видеокарта в отличном состоянии.' : serviceLoad > powerLimit() ? 'Для запуска после ремонта нужно больше питания.'
     : state.cash < repairCost ? 'Для ремонта не хватает кредитов.' : '';
   info.innerHTML = '<div class="dialog-head"><h2>Обслуживание GPU</h2><button class="icon-button" aria-label="Закрыть" data-close="info">'+icon('close')+'</button></div><p>'+gpu.name+' · Стойка '+(rack+1)+' · Слот '+(slot+1)+'</p><p class="source-note">Остаток ресурса — '+num(card.health)+'%. Процент ресурса влияет на хешрейт. Износ начинается при 72 °C. Обслуживание возвращает 100% ресурса.</p><div class="detail-links"><button class="primary" data-service="'+slotCode+'" '+(block?'disabled':'')+'>Обслужить · '+int(repairCost)+' CR</button></div>'+(block?'<p class="source-note">'+block+'</p>':'');
+  info.showModal();
+}
+function showFitDialog({index,rack,slot}) {
+  const choosingSlot = index !== undefined;
+  const card = state.inventory[index];
+  const options = choosingSlot
+    ? emptySlots().map((destination) => ({
+        label:'Стойка '+(destination.rack+1)+' · слот '+(destination.slot+1), index,...destination
+      }))
+    : state.inventory.map((stored,stockIndex) => ({
+        label:gpuById[stored.id].name+' · '+num(stored.health)+'%',index:stockIndex,rack,slot
+      }));
+  const title = choosingSlot ? 'Куда установить '+gpuById[card.id].name+'?' : 'Стойка '+(rack+1)+' · слот '+(slot+1);
+  const body = options.length
+    ? '<div class="fit-options">'+options.map((option) => '<button class="secondary" data-fit-gpu="'+option.index+':'+option.rack+':'+option.slot+'">'+option.label+'</button>').join('')+'</div>'
+    : '<p class="source-note">'+(choosingSlot?'Все слоты заняты. Освободи слот или купи ещё одну стойку.':'Склад пуст. Карту для этого слота можно купить в магазине.')+'</p>';
+  const shop = choosingSlot ? '' : '<div class="detail-links"><a class="secondary" href="#shop" data-slot="'+rack+':'+slot+'">Купить карту для этого слота</a></div>';
+  info.innerHTML = '<div class="dialog-head"><h2>'+title+'</h2><button class="icon-button" aria-label="Закрыть" data-close="info">'+icon('close')+'</button></div>'+body+'<p id="fitError" class="fit-error" role="status"></p>'+shop;
   info.showModal();
 }
 function pressGroup(group,value) {
@@ -1658,6 +1723,7 @@ function initControls() {
     if (slotLink) {
       const [rack,slot] = slotLink.dataset.slot.split(':').map(Number);
       targetSlot = {rack,slot};
+      if (info.open) info.close();
     }
     const button = event.target.closest('button');
     if (!button) return;
@@ -1712,6 +1778,13 @@ function initControls() {
     }
     if (data.info) gpuInfo(gpuById[data.info]);
     if (data.repair) repairInfo(data.repair);
+    if (data.removeGpu) removeGpu(...data.removeGpu.split(':').map(Number));
+    if (data.fitSlot) {
+      const [rack,slot] = data.fitSlot.split(':').map(Number);
+      showFitDialog({rack,slot});
+    }
+    if (data.fitInventory !== undefined) showFitDialog({index:Number(data.fitInventory)});
+    if (data.fitGpu) fitGpu(...data.fitGpu.split(':').map(Number));
     if (data.service) {
       const [rack,slot] = data.service.split(':').map(Number);
       const card = state.stands[rack]?.cards[slot];
